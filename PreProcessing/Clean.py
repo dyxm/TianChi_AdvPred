@@ -38,7 +38,7 @@ def normalize(data):
 def write_to_file(data, path, file_name):
     if not os.path.exists(path):
         os.makedirs(path)
-    data.to_csv(path + file_name, index=False, sep=' ')
+    data.to_csv(path + file_name, index=False, header=False, sep=' ')
     return
 
 
