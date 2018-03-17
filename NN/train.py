@@ -42,7 +42,7 @@ def main():
     # 训练次数
     iterator = 10000
     # batch 大小
-    batch_size = 1196
+    batch_size = 10000
     # 模型存储地址
     CKPT_PATH = '../Ckpt_Dir/AdamOptimizer_17_100_150_100_50_2'
     # drop_out因子
@@ -66,7 +66,7 @@ def main():
     # 第四层
     l4 = add_layer("layer4", l3, 100, 50, activation_function=tf.nn.relu, drop_out=drop_out)
     # 第五层
-    l5 = add_layer("layer5", l4, 100, 50, activation_function=tf.nn.relu, drop_out=drop_out)
+    l5 = add_layer("layer5", l4, 50, 50, activation_function=tf.nn.relu, drop_out=drop_out)
     # 第六层--输出层
     prediction = add_layer("output", l5, 50, 1, activation_function=tf.tanh)
     # logistic 误差
