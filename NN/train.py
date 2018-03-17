@@ -11,7 +11,6 @@ import tensorflow as tf
 
 def read_file(path):
     """读取训练数据"""
-    print('读取数据...')
     data = pd.read_csv(path, sep=' ')
     return data
 
@@ -42,7 +41,7 @@ def main():
     # 训练次数
     iterator = 10000
     # batch 大小
-    batch_size = 1196
+    batch_size = 10000
     # 模型存储地址
     CKPT_PATH = '../Ckpt_Dir/AdamOptimizer_17_100_150_100_50_2'
     # drop_out因子
@@ -66,7 +65,7 @@ def main():
     # 第四层
     l4 = add_layer("layer4", l3, 100, 50, activation_function=tf.nn.relu, drop_out=drop_out)
     # 第五层
-    l5 = add_layer("layer5", l4, 100, 50, activation_function=tf.nn.relu, drop_out=drop_out)
+    l5 = add_layer("layer5", l4, 50, 50, activation_function=tf.nn.relu, drop_out=drop_out)
     # 第六层--输出层
     prediction = add_layer("output", l5, 50, 1, activation_function=tf.tanh)
     # logistic 误差
@@ -87,6 +86,7 @@ def main():
     # 打开会话
     with tf.Session() as sess:
         # 读取数据
+        print('读取数据...')
         train_data = read_file(train_data_path)
         label_data = read_file(label_data_path)
         # 划分数据
@@ -100,14 +100,17 @@ def main():
             print(ckpt.model_checkpoint_path)
             saver.restore(sess, ckpt.model_checkpoint_path)
         global_start_step = global_step.eval()
-        print("start from: %d" % global_start_step)
+        print("从 %d 步开始训练..." % global_start_step)
 
         # 开始训练
         for i in range(global_start_step, iterator):
+            j = 0
             for (start, end) in zip(range(0, len(train_x), batch_size), range(batch_size, len(train_x) + 1, batch_size)):
+                j += 1
                 batch_x = train_x[start: end]
                 batch_y = train_y[start: end]
                 # 训练
+                print('第 %d 次训练第 %d 个batch...' % (i, j))
                 sess.run(train_op, feed_dict={x: batch_x, y: batch_y})
 
             # 训练 10 个回合用测试集计算并输出损失
