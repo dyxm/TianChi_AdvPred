@@ -49,7 +49,7 @@ def recall(y_true, y_pred, average):
 def loss(y_true, y_pred):
     m = len(y_true)
     y_true = y_true.reshape(m, 1)
-    cost = (y_true * np.log(y_pred[:, 1: 2]) + (1 - y_true) * np.log(1 - y_pred[:, 0: 1])).sum()
+    cost = (y_true * np.log(y_pred[:, 1: 2]) + (1 - y_true) * np.log(y_pred[:, 0: 1])).sum()
     return - cost / m
 
 
@@ -62,33 +62,35 @@ def main():
     # 读取数据
     train_data = read_file(train_data_path)
     label_data = read_file(label_data_path)
-    train_x, test_x, train_y, test_y = train_test_split(train_data, label_data, test_size=0.1)
-    train_y = np.array(train_y).reshape(1, len(train_y))[0]
-    test_y = np.array(test_y).reshape(1, len(test_y))[0]
+    N = 10
+    for j in range(N):
+        train_x, test_x, train_y, test_y = train_test_split(train_data, label_data, test_size=0.1)
+        train_y = np.array(train_y).reshape(1, len(train_y))[0]
+        test_y = np.array(test_y).reshape(1, len(test_y))[0]
 
-    # print(train_y)
-    # 训练模型
-    weight_0 = 0.0525
-    class_weight = {0: weight_0, 1: 1 - weight_0}
-    classifier = train(np.array(train_x), np.array(train_y).reshape(1, len(train_y))[0], class_weight)
+        # 训练模型
+        weight_0 = 0.05
+        class_weight = {0: weight_0, 1: 1 - weight_0}
+        classifier = train(np.array(train_x), np.array(train_y).reshape(1, len(train_y))[0], class_weight)
 
-    # 预测
-    predictions, predictions_proba = predict(classifier, test_x)
-    print(predictions)
-    print(predictions_proba)
-    res = 0
-    for i in range(len(predictions)):
-        if predictions[i] == 1:
-            res = res + 1
-    print(res)
+        # 预测
+        predictions, predictions_proba = predict(classifier, test_x)
 
-    print('正确率：%f' % accuracy(test_y, predictions))
-    print('宏平均：%f' % precision_score(test_y, predictions, 'macro'))
-    print('微平均：%f' % precision_score(test_y, predictions, 'micro'))
-    print('宏召回率：%f' % recall(test_y, predictions, 'macro'))
-    print('微召回率：%f' % recall(test_y, predictions, 'micro'))
-    print('f1：%f' % metrics.f1_score(test_y, predictions, average='weighted'))
-    print('loss：%f' % loss(test_y, predictions_proba))
+        positive_count = 0
+        for i in range(len(predictions)):
+            if predictions[i] == 1:
+                positive_count += 1
+
+        print('预测的正例有 %d 个' % positive_count)
+
+        # 模型评估
+        print('正确率：%f' % accuracy(test_y, predictions))
+        print('宏平均：%f' % precision_score(test_y, predictions, 'macro'))
+        print('微平均：%f' % precision_score(test_y, predictions, 'micro'))
+        print('宏召回率：%f' % recall(test_y, predictions, 'macro'))
+        print('微召回率：%f' % recall(test_y, predictions, 'micro'))
+        print('f1：%f' % metrics.f1_score(test_y, predictions, average='weighted'))
+        print('loss：%f' % loss(test_y, predictions_proba))
 
 
 if __name__ == '__main__':
