@@ -6,6 +6,7 @@ import os
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn import metrics
 import tensorflow as tf
 
 
@@ -33,6 +34,41 @@ def add_layer(layer_name, inputs, in_size, out_size, activation_function=None, d
     return outputs
 
 
+def transfer_0_1(prediction):
+    """将预测概率转为用 0 / 1 表示"""
+    prediction_transfer = []
+    for i in prediction:
+        if i >= 0.5:
+            prediction_transfer.append(1)
+        else:
+            prediction_transfer.append(0)
+    return prediction_transfer
+
+
+# def accuracy(y_true, y_prediction):
+#     """计算准确率"""
+#     result = 0.
+#     for i in range(len(y_true)):
+#         if y_true[i] == y_prediction[i]:
+#             result += 1
+#     return result / len(y_true)
+
+
+def accuracy(y_true, y_pred):
+    """准确率评估"""
+    return metrics.accuracy_score(y_true, y_pred)
+
+
+def precision_score(y_true, y_pred, average):
+    """求宏/微平均"""
+    return metrics.precision_score(y_true, y_pred, average=average)
+
+
+def recall(y_true, y_pred, average):
+    """求宏/微召回率"""
+    return metrics.recall_score(y_true, y_pred, average=average)
+
+
 def main():
     # 训练数据路径
     train_data_path = r'../DataSet/TrainData/train_001.csv'
@@ -47,7 +83,7 @@ def main():
     # drop_out因子
     drop_out = 0.7
     # 代价敏感因子
-    w_ls = tf.Variable([[0.055], [10]], name="w_ls", trainable=False)
+    w_ls = tf.Variable([1., 5.], name="w_ls", trainable=False)
     # 计数器变量，当前第几步
     global_step = tf.Variable(0, name='global_step', trainable=False)
 
@@ -67,10 +103,13 @@ def main():
     # 第五层
     l5 = add_layer("layer5", l4, 50, 50, activation_function=tf.nn.relu, drop_out=drop_out)
     # 第六层--输出层
-    prediction = add_layer("output", l5, 50, 1, activation_function=tf.tanh)
+    prediction = add_layer("output", l5, 50, 1, activation_function=tf.sigmoid)
     # logistic 误差
     # loss = - tf.reduce_mean(tf.reduce_sum(y * tf.log(tf.clip_by_value(prediction,1e-10,1.0)), reduction_indices=1))
-    loss = - tf.reduce_mean(tf.reduce_sum(y * tf.log(prediction), reduction_indices=1))
+    loss = - tf.reduce_mean(
+        tf.reduce_sum(tf.add(y * tf.log(tf.clip_by_value(prediction, 1e-10, 1.0)) * w_ls[1],
+                             (1 - y) * tf.log(1 - tf.clip_by_value(prediction, 1e-10, 1.0)) * w_ls[0]),
+                      reduction_indices=1))
     # Adam优化器
     train_op = tf.train.AdamOptimizer(0.0001).minimize(loss)
 
@@ -105,7 +144,8 @@ def main():
         # 开始训练
         for i in range(global_start_step, iterator):
             j = 0
-            for (start, end) in zip(range(0, len(train_x), batch_size), range(batch_size, len(train_x) + 1, batch_size)):
+            for (start, end) in zip(range(0, len(train_x), batch_size),
+                                    range(batch_size, len(train_x) + 1, batch_size)):
                 j += 1
                 batch_x = train_x[start: end]
                 batch_y = train_y[start: end]
@@ -114,16 +154,24 @@ def main():
                 sess.run(train_op, feed_dict={x: batch_x, y: batch_y})
 
             # 训练 10 个回合用测试集计算并输出损失
-            if i % 10 == 0:
-                # 计算所有数据的交叉熵损失
-                total_loss = sess.run(loss, feed_dict={x: test_x, y: test_y})
-                # 输出交叉熵之和
-                print("训练 %d 次后测试集交叉熵损失为：%f " % (i, total_loss))
+            # if i % 10 == 0:
+            # 计算所有数据的交叉熵损失
+            total_loss, y_pred = sess.run([loss, prediction], feed_dict={x: test_x, y: test_y})
+            print("训练 %d 次后测试集交叉熵损失为：%f " % (i, total_loss))
+            y_pred = transfer_0_1(np.array(y_pred).reshape(1, len(y_pred))[0])
 
-        # 更新当前步数
-        global_step.assign(i).eval()
-        # 保存模型
-        saver.save(sess, CKPT_PATH + "/model.ckpt", global_step=global_step)
+            # 模型评估
+            print('正确率：%f' % accuracy(test_y, y_pred))
+            print('宏平均：%f' % precision_score(test_y, y_pred, 'macro'))
+            print('微平均：%f' % precision_score(test_y, y_pred, 'micro'))
+            print('宏召回率：%f' % recall(test_y, y_pred, 'macro'))
+            print('微召回率：%f' % recall(test_y, y_pred, 'micro'))
+            print('f1：%f' % metrics.f1_score(test_y, y_pred, average='weighted'))
+
+            # 更新当前步数
+            global_step.assign(i).eval()
+            # 保存模型
+            saver.save(sess, CKPT_PATH + "/model.ckpt", global_step=global_step)
 
 
 if __name__ == '__main__':
