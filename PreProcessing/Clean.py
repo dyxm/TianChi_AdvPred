@@ -43,30 +43,38 @@ def write_to_file(data, path, file_name):
 
 
 def main():
-    # 原始训练数据路径
-    raw_train_data_path = r'../DataSet/TrainData/raw_train_20180301.txt'
+    # 原始数据路径
+    # raw_train_data_path = r'../DataSet/TrainData/raw_train_20180301.txt'
     # 数据处理完存放的位置
-    save_train_data_path = r'../DataSet/TrainData/'
+    # save_train_data_path = r'../DataSet/TrainData/'
+    save_train_data_path = r'../DataSet/TestData/'
     # 原始测试数据路径
-    # raw_test_data_path = r'../DataSet/TestData/raw_test_a_20180301.txt'
+    raw_test_data_path = r'../DataSet/TestData/raw_test_a_20180301.txt'
 
     # 读取数据
-    raw_data = pd.read_csv(raw_train_data_path, sep=" ",
-                           usecols=['item_price_level', 'item_sales_level', 'item_collected_level', 'item_pv_level',
+    # raw_data = pd.read_csv(raw_train_data_path, sep=" ",
+    raw_data = pd.read_csv(raw_test_data_path, sep=" ",
+                           # usecols=['item_price_level', 'item_sales_level', 'item_collected_level', 'item_pv_level',
+                           usecols=['instance_id', 'item_price_level', 'item_sales_level', 'item_collected_level', 'item_pv_level',
                                     'user_gender_id', 'user_age_level', 'user_occupation_id', 'user_star_level',
                                     'context_timestamp', 'context_page_id', 'shop_review_num_level',
                                     'shop_review_positive_rate', 'shop_star_level', 'shop_score_service',
-                                    'shop_score_delivery', 'shop_score_description', 'is_trade'],
+                                    # 'shop_score_delivery', 'shop_score_description', 'is_trade'],
+                                    'shop_score_delivery', 'shop_score_description'],
                            parse_dates=['context_timestamp'],
                            date_parser=lambda dates: pd.to_datetime(dates, unit='s'))
+
+    # 取出索引
+    instance_id = raw_data['instance_id']
+    # raw_data = raw_data.drop(['instance_id'], axis=1)
 
     # 填充缺失值
     raw_data = fill(raw_data)
 
     # 将标记写入label.csv文件
-    write_to_file(raw_data['is_trade'], save_train_data_path, r'label_001.csv')
+    # write_to_file(raw_data['is_trade'], save_train_data_path, r'label_001.csv')
     # 删除 is_trade 列
-    raw_data = raw_data.drop(['is_trade'], axis=1)
+    # raw_data = raw_data.drop(['is_trade'], axis=1)
 
     # 提取时间特征
     # raw_data['month'], raw_data['day'], raw_data['hour'] = get_time_feature(raw_data['context_timestamp'])
@@ -75,12 +83,15 @@ def main():
     raw_data = raw_data.drop(['context_timestamp'], axis=1)
 
     # 归一化
-    raw_data = normalize(raw_data)
+    norm_data = normalize(raw_data)
+
+    # 放回索引
+    norm_data['instance_id'] = instance_id
 
     # 将特征写入 train.csv 文件
-    write_to_file(raw_data, save_train_data_path, r'train_001.csv')
+    write_to_file(norm_data, save_train_data_path, r'test_001.csv')
 
-    print(raw_data)
+    print(norm_data)
 
 
 if __name__ == '__main__':

@@ -10,9 +10,9 @@ from sklearn import metrics
 import tensorflow as tf
 
 
-def read_file(path):
+def read_file(path, header=None):
     """读取训练数据"""
-    data = pd.read_csv(path, sep=' ')
+    data = pd.read_csv(path, sep=' ', header=header)
     return data
 
 
@@ -70,20 +70,22 @@ def recall(y_true, y_pred, average):
 
 
 def main():
-    # 训练数据路径
     train_data_path = r'../DataSet/TrainData/train_001.csv'
+    # train_data_path = r'../DataSet/TrainData/train_balance_001.csv'
     # label数据路径
     label_data_path = r'../DataSet/TrainData/label_001.csv'
+    # label_data_path = r'../DataSet/TrainData/label_balance_001.csv'
     # 训练次数
     iterator = 10000
     # batch 大小
-    batch_size = 10000
+    batch_size = 2000
     # 模型存储地址
     CKPT_PATH = '../Ckpt_Dir/AdamOptimizer_17_100_150_100_50_2'
     # drop_out因子
-    drop_out = 0.7
+    drop_out = 1
     # 代价敏感因子
-    w_ls = tf.Variable([1., 5.], name="w_ls", trainable=False)
+    weight_0 = 0.4
+    # w_ls = tf.Variable([0.05, 50.], name="w_ls", trainable=False)
     # 计数器变量，当前第几步
     global_step = tf.Variable(0, name='global_step', trainable=False)
 
@@ -107,11 +109,13 @@ def main():
     # logistic 误差
     # loss = - tf.reduce_mean(tf.reduce_sum(y * tf.log(tf.clip_by_value(prediction,1e-10,1.0)), reduction_indices=1))
     loss = - tf.reduce_mean(
-        tf.reduce_sum(tf.add(y * tf.log(tf.clip_by_value(prediction, 1e-10, 1.0)) * w_ls[1],
-                             (1 - y) * tf.log(1 - tf.clip_by_value(prediction, 1e-10, 1.0)) * w_ls[0]),
+        tf.reduce_sum(tf.add(y * tf.log(tf.clip_by_value(prediction, 1e-10, 1.0)),
+                             (1 - y) * tf.log(1 - tf.clip_by_value(prediction, 1e-10, 1.0))),
                       reduction_indices=1))
     # Adam优化器
-    train_op = tf.train.AdamOptimizer(0.0001).minimize(loss)
+    train_op = tf.train.AdamOptimizer(0.0000001).minimize(loss)
+    # 梯度下降
+    # train_op = tf.train.GradientDescentOptimizer(0.1).minimize(loss)
 
     # 计算模型当前的正确率
     # correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(y, 1))
@@ -128,6 +132,7 @@ def main():
         print('读取数据...')
         train_data = read_file(train_data_path)
         label_data = read_file(label_data_path)
+
         # 划分数据
         train_x, test_x, train_y, test_y = train_test_split(train_data, label_data, test_size=0.1)
 
@@ -143,6 +148,8 @@ def main():
 
         # 开始训练
         for i in range(global_start_step, iterator):
+            # 划分数据
+            # train_x, test_x, train_y, test_y = train_test_split(train_data, label_data, test_size=0.1)
             j = 0
             for (start, end) in zip(range(0, len(train_x), batch_size),
                                     range(batch_size, len(train_x) + 1, batch_size)):
@@ -157,6 +164,7 @@ def main():
             # if i % 10 == 0:
             # 计算所有数据的交叉熵损失
             total_loss, y_pred = sess.run([loss, prediction], feed_dict={x: test_x, y: test_y})
+            # total_loss, y_pred = sess.run([loss, prediction], feed_dict={x: train_data, y: label_data})
             print("训练 %d 次后测试集交叉熵损失为：%f " % (i, total_loss))
             y_pred = transfer_0_1(np.array(y_pred).reshape(1, len(y_pred))[0])
 
