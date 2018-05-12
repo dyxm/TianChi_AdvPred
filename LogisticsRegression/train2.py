@@ -108,12 +108,13 @@ def main():
         # 预测测试集
         print('预测测试集...')
         predictions_proba = classifier.predict_proba(test_x.iloc[:, 1:])
+        # print(predictions_proba)
         result = pd.DataFrame(columns=['instance_id'], data=np.array(test_x.iloc[:, 0: 1]))
         result['predicted_score'] = pd.DataFrame(predictions_proba[:, 1:])
 
         # 保存预测结果
         print('保存预测结果...')
-        write_to_file(result, save_predict_path, r'LR_predict.csv', header=True)
+        write_to_file(result, save_predict_path, r'LR_predict_2.csv', header=True)
 
 
 if __name__ == '__main__':
